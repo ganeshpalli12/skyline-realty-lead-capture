@@ -41,12 +41,24 @@ export async function POST(request: Request) {
     );
   }
 
-  const updates = body.updates;
-  if (!updates || typeof updates !== "object" || Array.isArray(updates)) {
-    return agentError("'updates' must be an object.", 400);
+  // Accept both shapes:
+  //   { leadId, updates: { ... } }            (nested)
+  //   { leadId, qualificationStatus, ... }    (flat — what ElevenLabs sends)
+  const { leadId: _ignored, updates: nestedUpdates, ...rest } = body as
+    & { leadId: unknown; updates?: unknown }
+    & Record<string, unknown>;
+
+  let updatesObj: Record<string, unknown>;
+  if (
+    nestedUpdates &&
+    typeof nestedUpdates === "object" &&
+    !Array.isArray(nestedUpdates)
+  ) {
+    updatesObj = nestedUpdates as Record<string, unknown>;
+  } else {
+    updatesObj = rest;
   }
 
-  const updatesObj = updates as Record<string, unknown>;
   const sfUpdate: Record<string, unknown> = {};
 
   for (const [inputKey, sfFieldName] of Object.entries(FIELD_MAP)) {
@@ -95,10 +107,20 @@ export async function POST(request: Request) {
 
     return agentJson({ success: true, message: "Lead updated" });
   } catch (err) {
-    const status = (err as any)?.status === 404 ? 404 : 500;
+    const sfBody = (err as any)?.sfBody;
+    const sfStatus = (err as any)?.status;
     const message =
       err instanceof Error ? err.message : "Failed to update lead.";
-    console.error("update-lead error:", err);
-    return agentError(message, status);
+
+    console.error("update-lead error:", {
+      leadId,
+      attemptedFields: Object.keys(sfUpdate),
+      payload: sfUpdate,
+      salesforceStatus: sfStatus,
+      salesforceBody: sfBody,
+      message,
+    });
+
+    return agentError(message, 500);
   }
 }
