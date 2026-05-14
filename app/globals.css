@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #F5F0E6;
+  --foreground: #1F1A14;
+  --burgundy: #7A2E2E;
+  --hairline: #D8CFBF;
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper-grain texture, kept extremely faint to retain refinement */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(rgba(31, 26, 20, 0.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+  mix-blend-mode: multiply;
+  opacity: 0.55;
+}
+
+/* Selection styling */
+::selection {
+  background: #7A2E2E;
+  color: #F5F0E6;
+}
+
+/* Number-step indicator dot */
+.editorial-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #7A2E2E;
+  vertical-align: middle;
+}
+
+/* Inputs share an editorial bottom-border look */
+.field-input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #D8CFBF;
+  padding: 14px 0 10px;
+  font-size: 15px;
+  color: #1F1A14;
+  outline: none;
+  transition: border-color 220ms ease, color 220ms ease;
+}
+
+.field-input::placeholder {
+  color: #A29A8A;
+  font-weight: 300;
+}
+
+.field-input:hover {
+  border-bottom-color: #9A3D3D;
+}
+
+.field-input:focus {
+  border-bottom-color: #7A2E2E;
+}
+
+.field-input[aria-invalid="true"] {
+  border-bottom-color: #7A2E2E;
+}
+
+.field-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237A2E2E' stroke-width='1' fill='none' stroke-linecap='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 2px center;
+  padding-right: 22px;
+  cursor: pointer;
+}
+
+/* Custom radio */
+.radio-pill {
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.radio-pill input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-pill .indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #A29A8A;
+  border-radius: 999px;
+  transition: border-color 200ms ease, background-color 200ms ease;
+}
+
+.radio-pill .indicator::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background 200ms ease;
+}
+
+.radio-pill:hover .indicator {
+  border-color: #7A2E2E;
+}
+
+.radio-pill input:checked + .indicator {
+  border-color: #7A2E2E;
+}
+
+.radio-pill input:checked + .indicator::after {
+  background: #7A2E2E;
+}
+
+.radio-pill input:focus-visible + .indicator {
+  box-shadow: 0 0 0 3px rgba(122, 46, 46, 0.15);
+}
+
+/* Submit button */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 28px;
+  background: #7A2E2E;
+  color: #F5F0E6;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  border: 1px solid #7A2E2E;
+  cursor: pointer;
+  transition: background 240ms ease, color 240ms ease, letter-spacing 240ms ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #5E2222;
+  letter-spacing: 0.28em;
+}
+
+.btn-primary:disabled {
+  background: transparent;
+  color: #A29A8A;
+  border-color: #D8CFBF;
+  cursor: not-allowed;
+}
+
+.btn-primary .arrow {
+  display: inline-block;
+  transition: transform 240ms ease;
+}
+
+.btn-primary:hover:not(:disabled) .arrow {
+  transform: translateX(4px);
+}
+
+/* Soft fade-in on view change */
+@keyframes editorial-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: editorial-fade 700ms ease both;
+}
+
+.fade-in-delay-1 { animation-delay: 80ms; }
+.fade-in-delay-2 { animation-delay: 160ms; }
+.fade-in-delay-3 { animation-delay: 240ms; }
+.fade-in-delay-4 { animation-delay: 320ms; }
+
+/* Spinner */
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid rgba(245, 240, 230, 0.35);
+  border-top-color: #F5F0E6;
+  border-radius: 999px;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
