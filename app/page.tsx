@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,6 +66,10 @@ export default function Page() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [summary, setSummary] = useState<SubmittedSummary | null>(null);
+  // Synchronous guard against double-submission. setSubmitting takes a
+  // render tick to propagate to the disabled button; this ref blocks a
+  // second invocation in the same tick.
+  const inFlightRef = useRef(false);
 
   const {
     register,
@@ -88,6 +92,8 @@ export default function Page() {
   const phoneValue = watch("phone");
 
   const onSubmit = async (data: FormValues) => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
 
@@ -125,6 +131,7 @@ export default function Page() {
           : "We couldn't submit your inquiry. Please try again.";
       setSubmitError(message);
     } finally {
+      inFlightRef.current = false;
       setSubmitting(false);
     }
   };

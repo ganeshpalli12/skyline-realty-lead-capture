@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Allow the function to keep running for ~30s after responding so the
+// scheduled outbound call has time to fire.
+export const maxDuration = 60;
+
+const CALL_DELAY_MS = 30_000;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 type LeadPayload = {
   firstName: string;
@@ -277,18 +287,28 @@ export async function POST(request: Request) {
 
     const leadId = await createLead(apiInstanceUrl, accessToken, data);
 
-    // Lead is now in Salesforce. Trigger the ElevenLabs outbound call.
-    // If this fails, we still return success — the Lead is captured and
-    // ops can call the prospect manually.
-    const call = await triggerOutboundCall(data, leadId);
+    // Schedule the ElevenLabs outbound call to fire ~30 seconds AFTER
+    // the response goes back to the client. `waitUntil` keeps the
+    // serverless function alive past the response on Vercel so the
+    // timer + fetch actually run. The Lead is already in Salesforce,
+    // so a failure here is non-fatal — ops can follow up manually.
+    waitUntil(
+      (async () => {
+        try {
+          await sleep(CALL_DELAY_MS);
+          await triggerOutboundCall(data, leadId);
+        } catch (err) {
+          console.error("submit-lead: scheduled outbound call threw:", err);
+        }
+      })(),
+    );
 
     return NextResponse.json(
       {
         success: true,
         leadId,
-        callInitiated: call.initiated,
-        conversationId: call.conversationId,
-        callError: call.error,
+        callScheduled: true,
+        callDelaySeconds: CALL_DELAY_MS / 1000,
       },
       { status: 200 },
     );
