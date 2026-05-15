@@ -27,9 +27,16 @@ Create a `.env.local` file at the project root (it's git-ignored) with these key
 SF_INSTANCE_URL=https://YOUR-ORG.my.salesforce.com
 SF_CLIENT_ID=REPLACE_WITH_YOUR_CONSUMER_KEY
 SF_CLIENT_SECRET=REPLACE_WITH_YOUR_CONSUMER_SECRET
+
+ELEVENLABS_API_KEY=REPLACE_WITH_YOUR_XI_API_KEY
+ELEVENLABS_AGENT_ID=agent_xxxxxxxxxxxxxxxx
+ELEVENLABS_PHONE_NUMBER_ID=phnum_xxxxxxxxxxxxxxxx
 ```
 
-These are read **server-side only** by `app/api/submit-lead/route.ts`. They are never exposed to the browser.
+These are read **server-side only**. They are never exposed to the browser.
+
+- The `SF_*` keys are used by `/api/submit-lead` and `/api/agent/*` to authenticate with Salesforce.
+- The `ELEVENLABS_*` keys are used by `/api/submit-lead` to trigger an outbound voice call (via ElevenLabs → Twilio) immediately after the Lead is created.
 
 ### How to get Salesforce credentials
 

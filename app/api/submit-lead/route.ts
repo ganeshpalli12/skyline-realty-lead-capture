@@ -88,6 +88,96 @@ async function getAccessToken(instanceUrl: string, clientId: string, clientSecre
   };
 }
 
+function normalizePhoneE164(raw: string): string {
+  const stripped = raw.trim().replace(/[\s\-()]/g, "");
+  if (stripped.startsWith("+")) return stripped;
+  return `+91${stripped}`;
+}
+
+type OutboundCallResult =
+  | { initiated: true; conversationId: string | null; error: null }
+  | { initiated: false; conversationId: null; error: string };
+
+async function triggerOutboundCall(
+  data: LeadPayload,
+  leadId: string,
+): Promise<OutboundCallResult> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const agentId = process.env.ELEVENLABS_AGENT_ID;
+  const phoneNumberId = process.env.ELEVENLABS_PHONE_NUMBER_ID;
+
+  if (!apiKey || !agentId || !phoneNumberId) {
+    const error =
+      "ElevenLabs is not configured. Set ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, ELEVENLABS_PHONE_NUMBER_ID.";
+    console.error("submit-lead:", error);
+    return { initiated: false, conversationId: null, error };
+  }
+
+  const toNumber = normalizePhoneE164(data.phone);
+
+  try {
+    const res = await fetch(
+      "https://api.elevenlabs.io/v1/convai/twilio/outbound-call",
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agent_id: agentId,
+          agent_phone_number_id: phoneNumberId,
+          to_number: toNumber,
+          conversation_initiation_client_data: {
+            dynamic_variables: {
+              customer_name: `${data.firstName} ${data.lastName}`,
+              project_interest: data.projectInterest,
+              lead_id: leadId,
+            },
+          },
+        }),
+        cache: "no-store",
+      },
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      const msg = `ElevenLabs outbound-call returned ${res.status}: ${errorText}`;
+      console.error("submit-lead:", msg);
+      return { initiated: false, conversationId: null, error: msg };
+    }
+
+    const text = await res.text();
+    let parsed: any = null;
+    try {
+      parsed = text ? JSON.parse(text) : null;
+    } catch {
+      parsed = null;
+    }
+
+    const conversationId =
+      (parsed?.conversation_id as string | undefined) ||
+      (parsed?.callSid as string | undefined) ||
+      (parsed?.call_sid as string | undefined) ||
+      null;
+
+    console.log("submit-lead: outbound call initiated", {
+      leadId,
+      toNumber,
+      conversationId,
+    });
+
+    return { initiated: true, conversationId, error: null };
+  } catch (err) {
+    const msg =
+      err instanceof Error
+        ? err.message
+        : "Unknown error while initiating outbound call.";
+    console.error("submit-lead: outbound call failed:", err);
+    return { initiated: false, conversationId: null, error: msg };
+  }
+}
+
 async function createLead(
   apiInstanceUrl: string,
   accessToken: string,
@@ -187,7 +277,21 @@ export async function POST(request: Request) {
 
     const leadId = await createLead(apiInstanceUrl, accessToken, data);
 
-    return NextResponse.json({ success: true, leadId }, { status: 200 });
+    // Lead is now in Salesforce. Trigger the ElevenLabs outbound call.
+    // If this fails, we still return success — the Lead is captured and
+    // ops can call the prospect manually.
+    const call = await triggerOutboundCall(data, leadId);
+
+    return NextResponse.json(
+      {
+        success: true,
+        leadId,
+        callInitiated: call.initiated,
+        conversationId: call.conversationId,
+        callError: call.error,
+      },
+      { status: 200 },
+    );
   } catch (err) {
     console.error("submit-lead error:", err);
     const message =
