@@ -31,12 +31,16 @@ SF_CLIENT_SECRET=REPLACE_WITH_YOUR_CONSUMER_SECRET
 ELEVENLABS_API_KEY=REPLACE_WITH_YOUR_XI_API_KEY
 ELEVENLABS_AGENT_ID=agent_xxxxxxxxxxxxxxxx
 ELEVENLABS_PHONE_NUMBER_ID=phnum_xxxxxxxxxxxxxxxx
+
+SLACK_BOT_TOKEN=xoxb-REPLACE_WITH_YOUR_BOT_TOKEN
+OPENAI_API_KEY=sk-REPLACE_WITH_YOUR_OPENAI_KEY
 ```
 
 These are read **server-side only**. They are never exposed to the browser.
 
 - The `SF_*` keys are used by `/api/submit-lead` and `/api/agent/*` to authenticate with Salesforce.
-- The `ELEVENLABS_*` keys are used by `/api/submit-lead` to trigger an outbound voice call (via ElevenLabs → Twilio) immediately after the Lead is created.
+- The `ELEVENLABS_*` keys are used by `/api/submit-lead` to trigger an outbound voice call (via ElevenLabs → Twilio) ~30s after the Lead is created.
+- `SLACK_BOT_TOKEN` and `OPENAI_API_KEY` are used by `/api/slack/events` to download voice notes from Slack and transcribe them with Whisper.
 
 ### How to get Salesforce credentials
 
